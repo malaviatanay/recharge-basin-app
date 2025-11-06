@@ -1,0 +1,8 @@
+[
+    { "key": "sandy_loam", "label": "Sandy loam (typical)", "inPerDay": 3.0 },
+    { "key": "loam", "label": "Loam (typical)", "inPerDay": 2.0 },
+    { "key": "silt_loam", "label": "Silt loam (typical)", "inPerDay": 1.2 },
+    { "key": "clay_loam", "label": "Clay loam (typical)", "inPerDay": 0.6 },
+    { "key": "custom", "label": "Custom (enter value)", "inPerDay": null }
+  ]
+  
