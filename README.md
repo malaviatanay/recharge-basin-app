@@ -1,16 +1,29 @@
-# React + Vite
+# Recharge Basin Assessment App 🌊
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project helps California farmers and water managers estimate groundwater recharge potential, project costs, and ROI for converting farmland into recharge basins.
 
-Currently, two official plugins are available:
+Built with:
+- **React + Vite** for the front-end
+- **TailwindCSS** for styling
+- **Node.js + Express** for the backend
+- **MongoDB Atlas** for data storage
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Project Overview
 
-## React Compiler
+Groundwater levels in California’s Central Valley have dropped drastically due to decades of over-pumping and reduced surface water.  
+This tool allows farmers to:
+- Enter their land and cost details
+- Calculate recharge volume and cost-benefit
+- Review simple payback and ROI metrics
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Development Setup
 
-## Expanding the ESLint configuration
+To run the app locally:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+# Start the frontend
+npm run dev
+
+# Start the backend (in /server)
+cd server
+npx nodemon server.js
