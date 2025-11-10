@@ -13,10 +13,32 @@ const IN_PER_FT     = 12;     // inches per foot
 const SEC_PER_DAY   = 86_400; // 24 * 3600
 
 // Format helpers (optional for callers)
-export const fmtCurrency = (n, digits = 0) =>
-  isFinite(n) ? n.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: digits }) : "—";
-export const fmtNumber = (n, digits = 2) =>
-  isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: digits }) : "—";
+// ✅ Safely format a number as currency
+export const fmtCurrency = (n, digits = 0) => {
+  if (n === null || n === undefined || isNaN(n)) return "—";
+  try {
+    return Number(n).toLocaleString(undefined, {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: digits,
+    });
+  } catch {
+    return "—";
+  }
+};
+
+// ✅ Safely format a number with commas
+export const fmtNumber = (n, digits = 2) => {
+  if (n === null || n === undefined || isNaN(n)) return "—";
+  try {
+    return Number(n).toLocaleString(undefined, {
+      maximumFractionDigits: digits,
+    });
+  } catch {
+    return "—";
+  }
+};
+
 
 // ---------- Core calculator ----------
 // Inputs expected (keys + units):
