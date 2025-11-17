@@ -1,81 +1,101 @@
-import React, { useState } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents, Popup } from "react-leaflet";
+import React, { useEffect } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  FeatureGroup,
+  useMap,
+} from "react-leaflet";
 import L from "leaflet";
-import soilRates from "./soilRates.json";
+import "leaflet/dist/leaflet.css";
+import "leaflet-draw/dist/leaflet.draw.css";
+import "leaflet-draw";
 
-const markerIcon = new L.Icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-});
+export default function SoilMap({ onAreaSelect }) {
+  function DrawHandler({ onAreaSelect }) {
+    const map = useMap();
 
-function LocationMarker({ onSelect }) {
-  const [position, setPosition] = useState(null);
+    useEffect(() => {
+      const drawnItems = new L.FeatureGroup();
+      map.addLayer(drawnItems);
 
-  useMapEvents({
-    click(e) {
-      setPosition(e.latlng);
-      onSelect(e.latlng);
-    },
-  });
+      if (!map._drawControlAdded) {
+        const drawControl = new L.Control.Draw({
+          position: "topright",
+          draw: {
+            polygon: false,
+            polyline: false,
+            circle: false,
+            marker: false,
+            circlemarker: false,
+            rectangle: {
+              shapeOptions: {
+                color: "#1d4ed8", // nice blue color
+                weight: 3,
+                opacity: 0.8,
+                fillOpacity: 0.2,
+              },
+            },
+          },
+          edit: {
+            featureGroup: drawnItems,
+            remove: true,
+          },
+        });
+        map.addControl(drawControl);
+        map._drawControlAdded = true;
+      }
 
-  return position ? (
-    <Marker position={position} icon={markerIcon}>
-      <Popup>
-        Latitude: {position.lat.toFixed(4)}, Longitude: {position.lng.toFixed(4)}
-      </Popup>
-    </Marker>
-  ) : null;
-}
+      const handleCreated = (e) => {
+        const layer = e.layer;
+        drawnItems.clearLayers();
+        drawnItems.addLayer(layer);
 
-export default function SoilMap({ onSoilSelect }) {
-  const [clicked, setClicked] = useState(null);
+        const bounds = layer.getBounds();
+        const coords = [
+          [bounds.getNorth(), bounds.getWest()],
+          [bounds.getNorth(), bounds.getEast()],
+          [bounds.getSouth(), bounds.getEast()],
+          [bounds.getSouth(), bounds.getWest()],
+          [bounds.getNorth(), bounds.getWest()],
+        ];
 
-  const handleSelect = (latlng) => {
-    setClicked(latlng);
+        // ✅ Slightly enlarge the area for USDA to ensure we get data
+        const latExpand = 0.002; // roughly ~200m
+        const lngExpand = 0.002;
+        const expandedCoords = [
+          [bounds.getNorth() + latExpand, bounds.getWest() - lngExpand],
+          [bounds.getNorth() + latExpand, bounds.getEast() + lngExpand],
+          [bounds.getSouth() - latExpand, bounds.getEast() + lngExpand],
+          [bounds.getSouth() - latExpand, bounds.getWest() - lngExpand],
+          [bounds.getNorth() + latExpand, bounds.getWest() - lngExpand],
+        ];
 
-    // simple demo rule
-    const soil =
-      latlng.lat > 37 ? soilRates[0] : latlng.lat > 35 ? soilRates[1] : soilRates[3];
-    onSoilSelect(soil);
-  };
+        onAreaSelect(expandedCoords);
+      };
+
+      map.on(L.Draw.Event.CREATED, handleCreated);
+      return () => map.off(L.Draw.Event.CREATED, handleCreated);
+    }, [map, onAreaSelect]);
+
+    return null;
+  }
 
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm mt-5 hover:shadow-md transition-shadow duration-200">
-      <h3 className="mb-2 text-lg font-semibold">Select Location on Map</h3>
-      <p className="mb-3 text-sm text-gray-600">
-        Click anywhere in California to mark your field. The app will suggest a typical soil type
-        and update the infiltration rate automatically.
-      </p>
-
-      {/* Map container wrapper with fixed height */}
-      <div className="relative w-full overflow-hidden rounded-xl border border-gray-300">
-        <MapContainer
-          center={[36.5, -119.5]}
-          zoom={7}
-          scrollWheelZoom={false}
-          className="h-[300px] w-full z-0"
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <LocationMarker onSelect={handleSelect} />
-        </MapContainer>
-      </div>
-
-      {clicked && (
-        <div className="mt-3 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
-          <p>
-             <strong>Lat:</strong> {clicked.lat.toFixed(4)} &nbsp; 
-            <strong>Lng:</strong> {clicked.lng.toFixed(4)}
-          </p>
-          <p className="mt-1">
-             Suggested soil type applied based on location.
-          </p>
-        </div>
-      )}
-    </section>
+    <div className="border border-gray-200 rounded-xl overflow-hidden">
+      <MapContainer
+        center={[36.75, -119.75]}
+        zoom={13}
+        style={{ height: "400px", width: "100%" }}
+        scrollWheelZoom={true}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <FeatureGroup>
+          <DrawHandler onAreaSelect={onAreaSelect} />
+        </FeatureGroup>
+      </MapContainer>
+    </div>
   );
 }
