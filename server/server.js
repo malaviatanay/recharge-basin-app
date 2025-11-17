@@ -1,4 +1,4 @@
-// ✅ Improved Soil Data Endpoint (USDA API with fallback buffer)
+// ✅ Improved Soil Data Endpoint (with automatic fallback)
 app.post("/api/soil", async (req, res) => {
   try {
     const coords = req.body.coordinates;
@@ -6,7 +6,7 @@ app.post("/api/soil", async (req, res) => {
       return res.status(400).json({ ok: false, error: "Invalid coordinates" });
     }
 
-    // Compute bounding box
+    // Calculate bounding box
     const lats = coords.map((p) => p[0]);
     const lngs = coords.map((p) => p[1]);
     const minLat = Math.min(...lats);
@@ -14,16 +14,14 @@ app.post("/api/soil", async (req, res) => {
     const minLng = Math.min(...lngs);
     const maxLng = Math.max(...lngs);
 
-    // Compute center for fallback (if bounding box returns no data)
     const centerLat = (minLat + maxLat) / 2;
     const centerLng = (minLng + maxLng) / 2;
 
-    // Build a polygon WKT string (for SDA query)
     const polygon = `POLYGON((${minLng} ${maxLat}, ${maxLng} ${maxLat}, ${maxLng} ${minLat}, ${minLng} ${minLat}, ${minLng} ${maxLat}))`;
 
-    // USDA Soil Data Access SQL query
-    const query = `
-      SELECT mukey, muname, muacres
+    // USDA query
+    let query = `
+      SELECT TOP 10 mukey, muname, muacres
       FROM mapunit
       WHERE mukey IN (
         SELECT DISTINCT mukey
@@ -31,14 +29,14 @@ app.post("/api/soil", async (req, res) => {
       )
     `;
 
-    const response = await axios.post(
+    let response = await axios.post(
       "https://sdmdataaccess.nrcs.usda.gov/Tabular/post.rest",
       { query }
     );
 
     let soilData = response.data?.Table || [];
 
-    // ✅ Fallback: if no data found, query within 0.02-degree buffer (~2 km)
+    // ✅ Fallback: 2km buffer around the center
     if (!soilData.length) {
       console.warn("No data found for polygon, using buffer fallback...");
       const bufferQuery = `
@@ -57,12 +55,10 @@ app.post("/api/soil", async (req, res) => {
           )
         )
       `;
-
       const fallbackResponse = await axios.post(
         "https://sdmdataaccess.nrcs.usda.gov/Tabular/post.rest",
         { query: bufferQuery }
       );
-
       soilData = fallbackResponse.data?.Table || [];
     }
 

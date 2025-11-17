@@ -10,6 +10,23 @@ import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
 import "leaflet-draw";
 
+// ✅ Fix: Make sure Leaflet styles stay on top of Tailwind
+const leafletFixStyles = `
+  .leaflet-container {
+    z-index: 10 !important;
+  }
+  .leaflet-draw-toolbar a {
+    background: white !important;
+    border: 1px solid #ccc !important;
+  }
+  .leaflet-interactive {
+    stroke: #2563eb !important;
+    stroke-width: 3 !important;
+    fill: #60a5fa !important;
+    fill-opacity: 0.25 !important;
+  }
+`;
+
 export default function SoilMap({ onAreaSelect }) {
   function DrawHandler({ onAreaSelect }) {
     const map = useMap();
@@ -29,9 +46,9 @@ export default function SoilMap({ onAreaSelect }) {
             circlemarker: false,
             rectangle: {
               shapeOptions: {
-                color: "#1d4ed8", // nice blue color
+                color: "#2563eb",
                 weight: 3,
-                opacity: 0.8,
+                opacity: 0.9,
                 fillOpacity: 0.2,
               },
             },
@@ -46,8 +63,8 @@ export default function SoilMap({ onAreaSelect }) {
       }
 
       const handleCreated = (e) => {
-        const layer = e.layer;
         drawnItems.clearLayers();
+        const layer = e.layer;
         drawnItems.addLayer(layer);
 
         const bounds = layer.getBounds();
@@ -59,9 +76,9 @@ export default function SoilMap({ onAreaSelect }) {
           [bounds.getNorth(), bounds.getWest()],
         ];
 
-        // ✅ Slightly enlarge the area for USDA to ensure we get data
-        const latExpand = 0.002; // roughly ~200m
-        const lngExpand = 0.002;
+        // Slightly expand for USDA reliability
+        const latExpand = 0.005;
+        const lngExpand = 0.005;
         const expandedCoords = [
           [bounds.getNorth() + latExpand, bounds.getWest() - lngExpand],
           [bounds.getNorth() + latExpand, bounds.getEast() + lngExpand],
@@ -81,10 +98,13 @@ export default function SoilMap({ onAreaSelect }) {
   }
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
+    <div className="border border-gray-200 rounded-xl overflow-hidden relative">
+      {/* ✅ Inline styles to fix overlay visibility */}
+      <style>{leafletFixStyles}</style>
+
       <MapContainer
         center={[36.75, -119.75]}
-        zoom={13}
+        zoom={12}
         style={{ height: "400px", width: "100%" }}
         scrollWheelZoom={true}
       >
