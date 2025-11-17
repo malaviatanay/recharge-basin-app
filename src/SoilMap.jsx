@@ -5,25 +5,20 @@ import {
   FeatureGroup,
   useMap,
 } from "react-leaflet";
-import L from "./fixLeafletIcons";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
+import L from "leaflet";
 import "leaflet-draw";
 
-// ✅ Fix: Make sure Leaflet styles stay on top of Tailwind
+// --- one-time CSS fix so the rectangle is always visible ---
 const leafletFixStyles = `
-  .leaflet-container {
-    z-index: 10 !important;
-  }
-  .leaflet-draw-toolbar a {
-    background: white !important;
-    border: 1px solid #ccc !important;
-  }
+  .leaflet-container { z-index: 20 !important; }
+  .leaflet-draw-toolbar a { background:#fff !important; border:1px solid #ccc; }
   .leaflet-interactive {
-    stroke: #2563eb !important;
-    stroke-width: 3 !important;
-    fill: #60a5fa !important;
-    fill-opacity: 0.25 !important;
+    stroke:#2563eb !important;
+    stroke-width:3 !important;
+    fill:#60a5fa !important;
+    fill-opacity:.25 !important;
   }
 `;
 
@@ -48,15 +43,12 @@ export default function SoilMap({ onAreaSelect }) {
               shapeOptions: {
                 color: "#2563eb",
                 weight: 3,
-                opacity: 0.9,
-                fillOpacity: 0.2,
+                opacity: 1,
+                fillOpacity: 0.25,
               },
             },
           },
-          edit: {
-            featureGroup: drawnItems,
-            remove: true,
-          },
+          edit: { featureGroup: drawnItems, remove: true },
         });
         map.addControl(drawControl);
         map._drawControlAdded = true;
@@ -67,27 +59,15 @@ export default function SoilMap({ onAreaSelect }) {
         const layer = e.layer;
         drawnItems.addLayer(layer);
 
-        const bounds = layer.getBounds();
+        const b = layer.getBounds();
         const coords = [
-          [bounds.getNorth(), bounds.getWest()],
-          [bounds.getNorth(), bounds.getEast()],
-          [bounds.getSouth(), bounds.getEast()],
-          [bounds.getSouth(), bounds.getWest()],
-          [bounds.getNorth(), bounds.getWest()],
+          [b.getNorth(), b.getWest()],
+          [b.getNorth(), b.getEast()],
+          [b.getSouth(), b.getEast()],
+          [b.getSouth(), b.getWest()],
+          [b.getNorth(), b.getWest()],
         ];
-
-        // Slightly expand for USDA reliability
-        const latExpand = 0.005;
-        const lngExpand = 0.005;
-        const expandedCoords = [
-          [bounds.getNorth() + latExpand, bounds.getWest() - lngExpand],
-          [bounds.getNorth() + latExpand, bounds.getEast() + lngExpand],
-          [bounds.getSouth() - latExpand, bounds.getEast() + lngExpand],
-          [bounds.getSouth() - latExpand, bounds.getWest() - lngExpand],
-          [bounds.getNorth() + latExpand, bounds.getWest() - lngExpand],
-        ];
-
-        onAreaSelect(expandedCoords);
+        onAreaSelect(coords);
       };
 
       map.on(L.Draw.Event.CREATED, handleCreated);
@@ -99,14 +79,12 @@ export default function SoilMap({ onAreaSelect }) {
 
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden relative">
-      {/* ✅ Inline styles to fix overlay visibility */}
       <style>{leafletFixStyles}</style>
-
       <MapContainer
         center={[36.75, -119.75]}
         zoom={12}
         style={{ height: "400px", width: "100%" }}
-        scrollWheelZoom={true}
+        scrollWheelZoom
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
