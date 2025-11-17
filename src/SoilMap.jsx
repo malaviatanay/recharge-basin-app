@@ -5,7 +5,7 @@ import {
   FeatureGroup,
   useMap,
 } from "react-leaflet";
-import L from "leaflet";
+import L from "./fixLeafletIcons";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
 import "leaflet-draw";
