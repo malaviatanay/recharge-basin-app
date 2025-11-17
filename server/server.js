@@ -1,4 +1,23 @@
-// ✅ Improved Soil Data Endpoint (with automatic fallback)
+import express from "express";
+import cors from "cors";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import axios from "axios";
+
+dotenv.config();
+
+// ✅ initialize express before using `app`
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// ✅ connect MongoDB
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ Connected to MongoDB Atlas"))
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
+
+// ✅ Soil API endpoint (PUT THIS AFTER app IS DEFINED)
 app.post("/api/soil", async (req, res) => {
   try {
     const coords = req.body.coordinates;
@@ -6,7 +25,6 @@ app.post("/api/soil", async (req, res) => {
       return res.status(400).json({ ok: false, error: "Invalid coordinates" });
     }
 
-    // Calculate bounding box
     const lats = coords.map((p) => p[0]);
     const lngs = coords.map((p) => p[1]);
     const minLat = Math.min(...lats);
@@ -19,7 +37,6 @@ app.post("/api/soil", async (req, res) => {
 
     const polygon = `POLYGON((${minLng} ${maxLat}, ${maxLng} ${maxLat}, ${maxLng} ${minLat}, ${minLng} ${minLat}, ${minLng} ${maxLat}))`;
 
-    // USDA query
     let query = `
       SELECT TOP 10 mukey, muname, muacres
       FROM mapunit
@@ -36,7 +53,6 @@ app.post("/api/soil", async (req, res) => {
 
     let soilData = response.data?.Table || [];
 
-    // ✅ Fallback: 2km buffer around the center
     if (!soilData.length) {
       console.warn("No data found for polygon, using buffer fallback...");
       const bufferQuery = `
@@ -75,3 +91,12 @@ app.post("/api/soil", async (req, res) => {
     res.status(500).json({ ok: false, error: "Failed to fetch soil data." });
   }
 });
+
+// ✅ Health Check Route
+app.get("/", (req, res) => {
+  res.send("Recharge Basin API is running 🚀");
+});
+
+// ✅ Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
