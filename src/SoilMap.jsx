@@ -10,7 +10,6 @@ import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
 import "leaflet-draw";
 
-// ✅ Visual fixes
 const leafletFixStyles = `
   .leaflet-container { z-index: 20 !important; }
   .leaflet-interactive {
@@ -29,51 +28,58 @@ export default function SoilMap({ onAreaSelect }) {
       const drawnItems = new L.FeatureGroup();
       map.addLayer(drawnItems);
 
-      // ✅ Toolbar only added once
-      if (!map._drawControlAdded) {
-        const drawControl = new L.Control.Draw({
-          position: "topright",
-          draw: {
-            polygon: false,
-            polyline: false,
-            circle: false,
-            marker: false,
-            circlemarker: false,
-            rectangle: {
-              shapeOptions: {
-                color: "#2563eb",
-                weight: 3,
-                opacity: 1,
-                fillOpacity: 0.25,
-              },
+      // ✅ Add draw controls (rectangle only)
+      const drawControl = new L.Control.Draw({
+        draw: {
+          polygon: false,
+          polyline: false,
+          circle: false,
+          marker: false,
+          circlemarker: false,
+          rectangle: {
+            shapeOptions: {
+              color: "#2563eb",
+              weight: 3,
+              opacity: 1,
+              fillOpacity: 0.25,
             },
           },
-          edit: { featureGroup: drawnItems, remove: true },
-        });
-        map.addControl(drawControl);
-        map._drawControlAdded = true;
-      }
+        },
+        edit: {
+          featureGroup: drawnItems,
+          remove: true,
+        },
+      });
 
-      // ✅ When a rectangle is drawn
-      const handleCreated = (e) => {
+      map.addControl(drawControl);
+
+      // ✅ Handle rectangle creation
+      map.on(L.Draw.Event.CREATED, (e) => {
         drawnItems.clearLayers();
-        const layer = e.layer;
-        drawnItems.addLayer(layer);
+        drawnItems.addLayer(e.layer);
 
-        const b = layer.getBounds();
+        const b = e.layer.getBounds();
+        const north = b.getNorth();
+        const south = b.getSouth();
+        const east = b.getEast();
+        const west = b.getWest();
+
+        // ✅ Construct valid rectangular polygon
         const coords = [
-          [b.getNorth(), b.getWest()],
-          [b.getNorth(), b.getEast()],
-          [b.getSouth(), b.getEast()],
-          [b.getSouth(), b.getWest()],
-          [b.getNorth(), b.getWest()],
+          [north, west],
+          [north, east],
+          [south, east],
+          [south, west],
+          [north, west],
         ];
 
+        console.log("🗺️ Rectangle coordinates:", coords);
         onAreaSelect(coords);
-      };
+      });
 
-      map.on(L.Draw.Event.CREATED, handleCreated);
-      return () => map.off(L.Draw.Event.CREATED, handleCreated);
+      return () => {
+        map.off(L.Draw.Event.CREATED);
+      };
     }, [map, onAreaSelect]);
 
     return null;
@@ -84,12 +90,12 @@ export default function SoilMap({ onAreaSelect }) {
       <style>{leafletFixStyles}</style>
       <MapContainer
         center={[36.75, -119.75]}
-        zoom={12}
+        zoom={13}
         style={{ height: "400px", width: "100%" }}
-        scrollWheelZoom={true}
+        scrollWheelZoom
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
+          attribution='&copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <FeatureGroup>
