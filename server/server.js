@@ -6,11 +6,18 @@ import axios from "axios";
 
 dotenv.config();
 
-const app = express();           // ← this line must come before any app.post/get
+// ✅ Initialize Express app
+const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ Stable SoilDB (USDA SDA) endpoint
+// ✅ Connect to MongoDB Atlas
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ Connected to MongoDB Atlas"))
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
+
+// ✅ USDA SoilDB endpoint
 app.post("/api/soil", async (req, res) => {
   try {
     const coords = req.body.coordinates;
@@ -18,20 +25,20 @@ app.post("/api/soil", async (req, res) => {
       return res.status(400).json({ ok: false, error: "Invalid coordinates" });
     }
 
-    // ✅ Round to 5 decimals (SoilDB fails with too many)
+    // Round to 5 decimals for USDA API stability
     const rounded = coords.map(([lat, lng]) => [
       Number(lat.toFixed(5)),
       Number(lng.toFixed(5)),
     ]);
 
-    // ✅ Build Well-Known Text polygon (lng first)
+    // Build Well-Known Text (WKT) polygon
     const polygon = `POLYGON((${rounded
       .map(([lat, lng]) => `${lng} ${lat}`)
       .join(", ")}))`;
 
     console.log("🛰️ USDA SoilDB polygon query:", polygon);
 
-    // ✅ SDA SQL query
+    // USDA SDA SQL query
     const query = `
       SELECT TOP 10
         mu.mukey,
@@ -45,7 +52,6 @@ app.post("/api/soil", async (req, res) => {
       )
     `;
 
-    // ✅ Send request
     const response = await axios.post(
       "https://sdmdataaccess.nrcs.usda.gov/Tabular/post.rest",
       { query }
@@ -58,7 +64,7 @@ app.post("/api/soil", async (req, res) => {
       return res.json({
         ok: false,
         message:
-          "No soil data found for this area. Try drawing a slightly larger rectangle (1–2 km).",
+          "No soil data found for this area. Try drawing a larger rectangle (1–2 km).",
       });
     }
 
@@ -71,3 +77,12 @@ app.post("/api/soil", async (req, res) => {
     });
   }
 });
+
+// ✅ Health Check Route
+app.get("/", (req, res) => {
+  res.send("Recharge Basin API is running 🚀");
+});
+
+// ✅ Start the Server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
