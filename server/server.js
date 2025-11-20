@@ -1,3 +1,15 @@
+import express from "express";
+import cors from "cors";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import axios from "axios";
+
+dotenv.config();
+
+const app = express();           // ← this line must come before any app.post/get
+app.use(cors());
+app.use(express.json());
+
 // ✅ Stable SoilDB (USDA SDA) endpoint
 app.post("/api/soil", async (req, res) => {
   try {
