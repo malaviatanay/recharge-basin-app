@@ -5,20 +5,19 @@ import {
   FeatureGroup,
   useMap,
 } from "react-leaflet";
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
-import L from "leaflet";
 import "leaflet-draw";
 
-// --- one-time CSS fix so the rectangle is always visible ---
+// ✅ Visual fixes
 const leafletFixStyles = `
   .leaflet-container { z-index: 20 !important; }
-  .leaflet-draw-toolbar a { background:#fff !important; border:1px solid #ccc; }
   .leaflet-interactive {
-    stroke:#2563eb !important;
-    stroke-width:3 !important;
-    fill:#60a5fa !important;
-    fill-opacity:.25 !important;
+    stroke: #2563eb !important;
+    stroke-width: 3 !important;
+    fill: #60a5fa !important;
+    fill-opacity: 0.25 !important;
   }
 `;
 
@@ -30,6 +29,7 @@ export default function SoilMap({ onAreaSelect }) {
       const drawnItems = new L.FeatureGroup();
       map.addLayer(drawnItems);
 
+      // ✅ Toolbar only added once
       if (!map._drawControlAdded) {
         const drawControl = new L.Control.Draw({
           position: "topright",
@@ -54,6 +54,7 @@ export default function SoilMap({ onAreaSelect }) {
         map._drawControlAdded = true;
       }
 
+      // ✅ When a rectangle is drawn
       const handleCreated = (e) => {
         drawnItems.clearLayers();
         const layer = e.layer;
@@ -67,6 +68,7 @@ export default function SoilMap({ onAreaSelect }) {
           [b.getSouth(), b.getWest()],
           [b.getNorth(), b.getWest()],
         ];
+
         onAreaSelect(coords);
       };
 
@@ -84,7 +86,7 @@ export default function SoilMap({ onAreaSelect }) {
         center={[36.75, -119.75]}
         zoom={12}
         style={{ height: "400px", width: "100%" }}
-        scrollWheelZoom
+        scrollWheelZoom={true}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
