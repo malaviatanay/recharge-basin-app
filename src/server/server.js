@@ -1,7 +1,7 @@
-const express = require("express");
-const axios = require("axios");
-const cors = require("cors");
-const xml2js = require("xml2js");
+import express from "express";
+import axios from "axios";
+import cors from "cors";
+import xml2js from "xml2js";
 
 const app = express();
 app.use(express.json());
@@ -12,25 +12,16 @@ function parseAndSortSoils(reportJSON) {
     const tbody = reportJSON?.section?.table?.[0]?.tbody?.[0];
     if (!tbody?.tr?.length) return null;
 
-    const rows = tbody.tr;
-    const soils = [];
-
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      if (row.$?.class === "mapunit") {
-        const cell = row.td?.[0];
-        const text = cell?.para?.[0]?._ || "";
+    const soils = tbody.tr
+      .filter((row) => row.$?.class === "mapunit")
+      .map((row) => {
+        const text = row.td?.[0]?.para?.[0]?._ || "";
         const symbol = text.split("--")[0]?.trim();
         const desc = text.split("--")[1]?.trim() || "";
-
         const acresText = row.td?.[1]?.para?.[0]?._ || "";
         const acres = parseFloat(acresText.replace(/,/g, "")) || 0;
-
-        soils.push({ symbol, desc, acres });
-      }
-    }
-
-    if (!soils.length) return null;
+        return { symbol, desc, acres };
+      });
 
     soils.sort((a, b) => b.acres - a.acres);
     return soils;
@@ -44,45 +35,33 @@ app.get("/", (_req, res) => res.send("Soil API running"));
 
 app.post("/soil", async (req, res) => {
   try {
-    // ============================
-    // 🔥 FIXED: Use frontend coords
-    // ============================
     let ring = req.body.coordinates;
 
     if (!ring || ring.length < 4) {
       return res.status(400).json({ error: "Invalid coordinates from frontend." });
     }
 
-    // Convert (lat,lon) to (lon,lat)
+    // convert lat/lon → lon/lat
     ring = ring.map(([lat, lon]) => [lon, lat]);
 
-    // Close ring if not closed
-    const first = ring[0];
-    const last = ring[ring.length - 1];
-    if (first[0] !== last[0] || first[1] !== last[1]) {
-      ring.push([...first]);
+    // close ring
+    if (JSON.stringify(ring[0]) !== JSON.stringify(ring[ring.length - 1])) {
+      ring.push(ring[0]);
     }
 
-    // ============================
-    // Build GeoJSON AOI
-    // ============================
     const geojson = {
       type: "FeatureCollection",
       features: [
         {
           type: "Feature",
-          properties: { name: "User Selection" },
-          geometry: {
-            type: "Polygon",
-            coordinates: [ring],
-          },
+          properties: { name: "User selection" },
+          geometry: { type: "Polygon", coordinates: [ring] },
         },
       ],
     };
 
     const url = "https://sdmdataaccess.sc.egov.usda.gov/Tabular/post.rest";
 
-    // 1. Create AOI
     const aoiResp = await axios.post(
       url,
       {
@@ -94,12 +73,10 @@ app.post("/soil", async (req, res) => {
     );
 
     const AOIID = aoiResp.data?.id;
-    if (!AOIID) {
-      return res.status(502).json({ error: "AOI creation failed", raw: aoiResp.data });
-    }
+    if (!AOIID)
+      return res.status(500).json({ error: "AOI creation failed", raw: aoiResp.data });
 
-    // 2. Get catalog
-    const aoiCatalog = await axios.post(
+    const catalog = await axios.post(
       url,
       {
         SERVICE: "report",
@@ -109,12 +86,9 @@ app.post("/soil", async (req, res) => {
       { headers: { "Content-Type": "application/json" } }
     );
 
-    const folders = aoiCatalog.data?.tables?.[0]?.folders;
-    if (!folders) {
-      return res.status(502).json({ error: "Invalid catalog format", raw: aoiCatalog.data });
-    }
+    const folders = catalog.data?.tables?.[0]?.folders;
+    if (!folders) return res.status(500).json({ error: "Invalid catalog response" });
 
-    // Find Component Legend report
     let selected = null;
     for (const folder of folders) {
       const found = folder.reports.find((r) =>
@@ -129,8 +103,7 @@ app.post("/soil", async (req, res) => {
 
     const REPORTID = selected.reportid;
 
-    // 3. Get Report Metadata
-    const aoiReportData = await axios.post(
+    const reportDataResp = await axios.post(
       url,
       {
         SERVICE: "report",
@@ -142,10 +115,9 @@ app.post("/soil", async (req, res) => {
       { headers: { "Content-Type": "application/json" } }
     );
 
-    const REPORTDATA = aoiReportData.data;
+    const REPORTDATA = reportDataResp.data;
 
-    // 4. Run Report → Book XML format
-    const aoiReport = await axios.post(
+    const reportResp = await axios.post(
       url,
       {
         SERVICE: "report",
@@ -155,25 +127,14 @@ app.post("/soil", async (req, res) => {
       { headers: { "Content-Type": "application/json" } }
     );
 
-    const REPORTXML = aoiReport.data;
-    if (!REPORTXML) {
-      return res.status(502).json({ error: "Failed to fetch report", raw: aoiReport.data });
-    }
-
-    // Convert XML → JSON
+    const REPORTXML = reportResp.data;
     const REPORTJSON = await xml2js.parseStringPromise(REPORTXML);
-    if (!REPORTJSON) {
-      return res.status(502).json({ error: "Failed to convert report XML" });
-    }
 
-    // Parse soils
     const soils = parseAndSortSoils(REPORTJSON);
-    if (!soils || soils.length === 0) {
-      return res.status(404).json({ error: "No soils found in selected area." });
-    }
+    if (!soils || soils.length === 0)
+      return res.status(404).json({ error: "No soils found." });
 
-    // Return top soil AND the full list
-    return res.status(200).json({
+    res.json({
       ok: true,
       dominant: soils[0],
       allsoils: soils,
@@ -187,8 +148,6 @@ app.post("/soil", async (req, res) => {
   }
 });
 
-// ==========================
-// FIXED: Proper port binding
-// ==========================
+// required for Render
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on ${PORT}`));
