@@ -2,7 +2,7 @@ services:
   - type: web
     name: recharge-basin-app
     runtime: node
-    buildCommand: npm install
+    buildCommand: npm install && npm run build
     startCommand: node src/server/server.js
     envVars:
       - key: NODE_VERSION

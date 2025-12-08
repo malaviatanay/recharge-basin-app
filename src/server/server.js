@@ -2,6 +2,11 @@ import express from "express";
 import axios from "axios";
 import cors from "cors";
 import xml2js from "xml2js";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
@@ -31,7 +36,8 @@ function parseAndSortSoils(reportJSON) {
   }
 }
 
-app.get("/", (_req, res) => res.send("Soil API running"));
+// Serve static files from the dist directory
+app.use(express.static(path.join(__dirname, "../../dist")));
 
 app.post("/soil", async (req, res) => {
   try {
@@ -146,6 +152,11 @@ app.post("/soil", async (req, res) => {
       details: err.response?.data || err.message,
     });
   }
+});
+
+// Catch-all route to serve index.html for client-side routing
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(__dirname, "../../dist/index.html"));
 });
 
 // required for Render
