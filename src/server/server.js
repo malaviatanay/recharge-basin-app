@@ -154,8 +154,9 @@ app.post("/soil", async (req, res) => {
   }
 });
 
-// Catch-all route to serve index.html for client-side routing
-app.get("*", (_req, res) => {
+// Catch-all handler for client-side routing (SPA fallback)
+// This runs after all other routes, so API routes won't be affected
+app.use((_req, res) => {
   res.sendFile(path.join(__dirname, "../../dist/index.html"));
 });
 
