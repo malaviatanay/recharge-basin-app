@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import SoilMap from "./SoilMap";
-import { fmtCurrency, fmtNumber } from "./calcEngine";
+import { fmtCurrency, fmtNumber, computeRechargeEconomics } from "./calcEngine";
 
 export default function App() {
   const [inputs, setInputs] = useState({
@@ -31,19 +31,18 @@ export default function App() {
         import.meta.env.VITE_API_URL ||
         "https://recharge-basin-app.onrender.com";
 
-      const response = await fetch(`${BACKEND_URL}/api/soil`, {
+      const response = await fetch(`${BACKEND_URL}/soil`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ coordinates: polygonCoords }),
       });
 
       const data = await response.json();
-      if (data.ok) {
-        setSoilData(data.data);
-        await fetchCalculation();
+      if (data.ok && data.allsoils) {
+        setSoilData(data.allsoils);
       } else {
         setSoilData(null);
-        setError(data.message || "No soil data found. Try a larger area.");
+        setError(data.error || "No soil data found. Try a larger area.");
       }
     } catch (err) {
       console.error("Soil data fetch failed:", err);
@@ -53,24 +52,13 @@ export default function App() {
     }
   };
 
-  const fetchCalculation = async () => {
+  const calculateResults = () => {
     try {
-      setLoading(true);
-      const BACKEND_URL =
-        import.meta.env.VITE_API_URL ||
-        "https://recharge-basin-app.onrender.com";
-
-      const response = await fetch(`${BACKEND_URL}/api/calculate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(inputs),
-      });
-      const data = await response.json();
-      if (data.ok) setResults(data.results);
+      const calculatedResults = computeRechargeEconomics(inputs);
+      setResults(calculatedResults);
     } catch (err) {
       console.error("Calculation failed:", err);
-    } finally {
-      setLoading(false);
+      setError("Failed to calculate results.");
     }
   };
 
@@ -125,7 +113,7 @@ export default function App() {
 
           <div className="mt-5 flex justify-end">
             <button
-              onClick={fetchCalculation}
+              onClick={calculateResults}
               className="rounded-xl bg-blue-600 px-5 py-2 text-white font-medium hover:bg-blue-700"
             >
               Calculate Recharge
@@ -166,9 +154,9 @@ export default function App() {
                 <tbody>
                   {soilData.map((row, idx) => (
                     <tr key={idx} className="border-b">
-                      <td className="p-2">{row.musym}</td>
-                      <td className="p-2">{row.muname}</td>
-                      <td className="p-2 text-right">{fmtNumber(row.muacres || 0, 2)}</td>
+                      <td className="p-2">{row.symbol}</td>
+                      <td className="p-2">{row.desc}</td>
+                      <td className="p-2 text-right">{fmtNumber(row.acres || 0, 2)}</td>
                     </tr>
                   ))}
                 </tbody>
