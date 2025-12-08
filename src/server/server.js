@@ -3,10 +3,6 @@ import axios from "axios";
 import cors from "cors";
 import xml2js from "xml2js";
 import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
@@ -37,7 +33,9 @@ function parseAndSortSoils(reportJSON) {
 }
 
 // Serve static files from the dist directory
-app.use(express.static(path.join(__dirname, "../../dist")));
+// Use process.cwd() to get the project root (where npm start was run)
+const distPath = path.join(process.cwd(), "dist");
+app.use(express.static(distPath));
 
 app.post("/soil", async (req, res) => {
   try {
@@ -157,7 +155,7 @@ app.post("/soil", async (req, res) => {
 // Catch-all handler for client-side routing (SPA fallback)
 // This runs after all other routes, so API routes won't be affected
 app.use((_req, res) => {
-  res.sendFile(path.join(__dirname, "../../dist/index.html"));
+  res.sendFile(path.join(process.cwd(), "dist/index.html"));
 });
 
 // required for Render
