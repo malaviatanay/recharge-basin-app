@@ -65,21 +65,21 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900 p-6">
       <section className="max-w-[1000px] mx-auto mb-10">
-        <h2 className="text-3xl font-bold text-center mb-4">
-          Groundwater Depletion in California’s Central Valley
+        <h2 className="text-4xl font-bold text-center mb-6">
+          Groundwater Depletion in California's Central Valley
         </h2>
-        <p className="text-gray-700 text-lg leading-relaxed mb-6 text-center">
-          California’s Central Valley, one of the most productive agricultural
+        <p className="text-gray-700 text-xl leading-relaxed mb-8 text-center">
+          California's Central Valley, one of the most productive agricultural
           regions in the world, faces a critical challenge — decades of
           groundwater pumping, coupled with drought and reduced surface-water
           supplies, have caused aquifer levels to drop dramatically.
         </p>
 
-        <div className="max-w-3xl mx-auto bg-white/90 backdrop-blur-sm rounded-2xl shadow-md border border-gray-200 p-6">
-          <h3 className="text-2xl font-semibold text-blue-800 mb-3">
+        <div className="max-w-3xl mx-auto bg-white/90 backdrop-blur-sm rounded-2xl shadow-md border border-gray-200 p-8">
+          <h3 className="text-3xl font-semibold text-blue-800 mb-4">
             Our Collaborative Solution
           </h3>
-          <p className="text-gray-700 leading-relaxed">
+          <p className="text-gray-700 text-lg leading-relaxed">
             Working with the <strong>California Water Institute</strong>, this
             project encourages farmers to repurpose portions of their land into
             <strong> recharge basins </strong> — shallow areas designed to
