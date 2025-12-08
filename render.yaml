@@ -3,7 +3,7 @@ services:
     name: recharge-basin-app
     runtime: node
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node src/server/server.js
     envVars:
       - key: NODE_VERSION
         value: 18
