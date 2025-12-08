@@ -35,6 +35,9 @@ function parseAndSortSoils(reportJSON) {
 // Serve static files from the dist directory
 // Use process.cwd() to get the project root (where npm start was run)
 const distPath = path.join(process.cwd(), "dist");
+console.log("📁 Current working directory:", process.cwd());
+console.log("📁 Looking for dist folder at:", distPath);
+console.log("📁 Server file location:", import.meta.url);
 app.use(express.static(distPath));
 
 app.post("/soil", async (req, res) => {
