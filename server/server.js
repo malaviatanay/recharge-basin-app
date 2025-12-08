@@ -23,7 +23,6 @@ function parseAndSortSoils(reportJSON) {
         const symbol = text.split("--")[0]?.trim();
         const desc = text.split("--")[1]?.trim() || "";
 
-        // Map unit acres is usually in td[1]
         const acresText = row.td?.[1]?.para?.[0]?._ || "";
         const acres = parseFloat(acresText.replace(/,/g, "")) || 0;
 
@@ -33,14 +32,9 @@ function parseAndSortSoils(reportJSON) {
 
     if (!soils.length) return null;
 
-    // Sort by acreage descending
     soils.sort((a, b) => b.acres - a.acres);
-
-    // Return all soils
     return soils;
-  } 
-  
-  catch (err) {
+  } catch (err) {
     console.warn("Failed to parse soils:", err.message);
     return null;
   }
@@ -48,78 +42,79 @@ function parseAndSortSoils(reportJSON) {
 
 app.get("/", (_req, res) => res.send("Soil API running"));
 
-app.get("/soil", async (_req, res) => {
+app.post("/soil", async (req, res) => {
   try {
-    // Hard coded 40 acres in NW of Fresno (lon, lat). 
-	// GeoJSON needs the ring closed so make sure the first and last entries match.
-	// Retrieve real values from a map api.
-    const ring = [
-      [-119.7178, 36.7508],
-      [-119.7130, 36.7508],
-      [-119.7130, 36.7488],
-      [-119.7178, 36.7488],
-      [-119.7178, 36.7508] // close ring
+    // ============================
+    // 🔥 FIXED: Use frontend coords
+    // ============================
+    let ring = req.body.coordinates;
 
-    // Build GeoJSON (FeatureCollection is recommended; properties can be used with FILTER later)
+    if (!ring || ring.length < 4) {
+      return res.status(400).json({ error: "Invalid coordinates from frontend." });
+    }
+
+    // Convert (lat,lon) to (lon,lat)
+    ring = ring.map(([lat, lon]) => [lon, lat]);
+
+    // Close ring if not closed
+    const first = ring[0];
+    const last = ring[ring.length - 1];
+    if (first[0] !== last[0] || first[1] !== last[1]) {
+      ring.push([...first]);
+    }
+
+    // ============================
+    // Build GeoJSON AOI
+    // ============================
     const geojson = {
       type: "FeatureCollection",
       features: [
         {
           type: "Feature",
-          properties: { name: "Fresno Demo Field" },
+          properties: { name: "User Selection" },
           geometry: {
             type: "Polygon",
-            coordinates: [ring] // IMPORTANT: [ [ [lon,lat], ... ] ]
-          }
-        }
-      ]
+            coordinates: [ring],
+          },
+        },
+      ],
     };
-	
-	const url = "https://sdmdataaccess.sc.egov.usda.gov/Tabular/post.rest";
-	
-	// Establish an area of interest (farmer's field)
-	// AOI create: AOICOORDS must be a GeoJSON STRING (not object)
-    const aoiResp = await axios.post(url,
+
+    const url = "https://sdmdataaccess.sc.egov.usda.gov/Tabular/post.rest";
+
+    // 1. Create AOI
+    const aoiResp = await axios.post(
+      url,
       {
         SERVICE: "aoi",
         REQUEST: "create",
-        AOICOORDS: JSON.stringify(geojson)
-        },
+        AOICOORDS: JSON.stringify(geojson),
+      },
       { headers: { "Content-Type": "application/json" } }
     );
-	
-	// Confirm we recieved the AOIID return with error if we did not
-	const AOIID = aoiResp.data?.id; //ID returned by the api used for future calls
+
+    const AOIID = aoiResp.data?.id;
     if (!AOIID) {
       return res.status(502).json({ error: "AOI creation failed", raw: aoiResp.data });
     }
 
-	// Get the catalog of available reports
-	// Cannot gauantee that the "Component Legend" report will always have the same ID
-	// AOI catalog: Retrieve catalog of available reports
-    const aoiCatalog = await axios.post(url,
+    // 2. Get catalog
+    const aoiCatalog = await axios.post(
+      url,
       {
         SERVICE: "report",
         REQUEST: "getcatalog",
-        AOIID
+        AOIID,
       },
       { headers: { "Content-Type": "application/json" } }
     );
-	
-	//Confirm we recieved the Catalog return with error if we did not
-	const CAT = aoiCatalog.data;
-	if (!CAT) {
-      return res.status(502).json({ error: "failed to fetch catalog", raw: aoiCatalog.data });
-    }
-	//console.log("Catalog", JSON.stringify(CAT));
-	
-	// Confirm the catalog is of a usable format return with error if not
-	const folders = aoiCatalog.data?.tables?.[0]?.folders;
+
+    const folders = aoiCatalog.data?.tables?.[0]?.folders;
     if (!folders) {
-      return res.status(502).json({ error: "invalid catalog format", raw: aoiCatalog.data });
+      return res.status(502).json({ error: "Invalid catalog format", raw: aoiCatalog.data });
     }
-	
-	//Search the catalog for the proper report and retrieve its ID
+
+    // Find Component Legend report
     let selected = null;
     for (const folder of folders) {
       const found = folder.reports.find((r) =>
@@ -130,73 +125,70 @@ app.get("/soil", async (_req, res) => {
         break;
       }
     }
-    if (!selected) selected = folders[0].reports[0]; // fallback
+    if (!selected) selected = folders[0].reports[0];
+
     const REPORTID = selected.reportid;
-    console.log(`Using report: ${selected.reportname} (id ${REPORTID})`);
-	
-	// Get the reports metadata used to run the report on the AOI
-	// AOI ReportData: Retrieve the proper report data
+
+    // 3. Get Report Metadata
     const aoiReportData = await axios.post(
       url,
       {
         SERVICE: "report",
         REQUEST: "getreportdata",
-		REPORTID,
+        REPORTID,
         AOIID,
-		FORMAT: "short"
+        FORMAT: "short",
       },
       { headers: { "Content-Type": "application/json" } }
     );
-	
-	// Confirm we recieved the report metadata return with error if we did not
-	const REPORTDATA = aoiReportData.data;
-	if (!REPORTDATA) {
-      return res.status(502).json({ error: "failed to fetch report data", raw: aoiReportData.data });
-    }
-	
-	// Run the report to gather information on the soil makeup of the AOI
-	// AOI Report: Run the report
+
+    const REPORTDATA = aoiReportData.data;
+
+    // 4. Run Report → Book XML format
     const aoiReport = await axios.post(
       url,
       {
         SERVICE: "report",
         REQUEST: "getreport",
-		SHORTFORMDATA: JSON.stringify(REPORTDATA)
+        SHORTFORMDATA: JSON.stringify(REPORTDATA),
       },
       { headers: { "Content-Type": "application/json" } }
     );
-	
-	// Confirm we recieved the report (in Book XML format) return with error if we did not
-	const REPORTXML = aoiReport.data;
-	if (!REPORTXML) {
-      return res.status(502).json({ error: "failed to fetch report", raw: aoiReport.data });
-    }
-	
-	// Convert Book XML to JSON
-	const REPORTJSON = await xml2js.parseStringPromise(REPORTXML);
-	
-	// Confirm we recieved the report (in JSON format) return with error if we did not
-	if (!REPORTJSON) {
-      return res.status(502).json({ error: "failed to convert report to JSON", raw: aoiReport.data });
-    }
-	console.log("\n Completed \n");
-	
-	// Parse the JSON into a usable object (seperate symbol from its description)
-	const soils = parseAndSortSoils(REPORTJSON);
-	
-	// Return successful with the symbol of the most prolific soil type
-	return res.status(200).json(soils[0].symbol);
 
-  } 
-  // Catch errors not related to business logic
-  catch (err) {
+    const REPORTXML = aoiReport.data;
+    if (!REPORTXML) {
+      return res.status(502).json({ error: "Failed to fetch report", raw: aoiReport.data });
+    }
+
+    // Convert XML → JSON
+    const REPORTJSON = await xml2js.parseStringPromise(REPORTXML);
+    if (!REPORTJSON) {
+      return res.status(502).json({ error: "Failed to convert report XML" });
+    }
+
+    // Parse soils
+    const soils = parseAndSortSoils(REPORTJSON);
+    if (!soils || soils.length === 0) {
+      return res.status(404).json({ error: "No soils found in selected area." });
+    }
+
+    // Return top soil AND the full list
+    return res.status(200).json({
+      ok: true,
+      dominant: soils[0],
+      allsoils: soils,
+    });
+  } catch (err) {
     console.error("SDA ERROR:", err.response?.data || err.message);
-    res
-      .status(500)
-      .json({ error: "Failed", details: err.response?.data || err.message });
+    res.status(500).json({
+      error: "SoilDB service failure",
+      details: err.response?.data || err.message,
+    });
   }
 });
 
-// Begin lisining on port 5000 and report server running
+// ==========================
+// FIXED: Proper port binding
+// ==========================
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`)); 
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
