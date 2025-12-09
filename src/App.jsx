@@ -17,16 +17,48 @@ export default function App() {
 
   const [coords, setCoords] = useState(null);
   const [soilData, setSoilData] = useState(null);
+  const [selectedAreaAcres, setSelectedAreaAcres] = useState(null);
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const set = (key, value) => setInputs((s) => ({ ...s, [key]: value }));
 
+  // Calculate area in acres from lat/lon coordinates
+  const calculateAreaAcres = (coords) => {
+    // coords = [[lat1, lon1], [lat2, lon2], [lat3, lon3], [lat4, lon4], [lat1, lon1]]
+    // For a rectangle: get north, south, east, west
+    const lats = coords.map(c => c[0]);
+    const lons = coords.map(c => c[1]);
+    const north = Math.max(...lats);
+    const south = Math.min(...lats);
+    const east = Math.max(...lons);
+    const west = Math.min(...lons);
+
+    // Calculate area using approximate formula for small areas
+    // Latitude degree in meters (roughly constant)
+    const latDegreeMiles = 69.0;
+    // Longitude degree varies with latitude
+    const avgLat = (north + south) / 2;
+    const lonDegreeMiles = 69.0 * Math.cos((avgLat * Math.PI) / 180);
+
+    const heightMiles = (north - south) * latDegreeMiles;
+    const widthMiles = (east - west) * lonDegreeMiles;
+    const areaSqMiles = heightMiles * widthMiles;
+    const areaAcres = areaSqMiles * 640; // 640 acres per square mile
+
+    return areaAcres;
+  };
+
   const fetchSoilData = async (polygonCoords) => {
     try {
       setLoading(true);
       setError(null);
+
+      // Calculate the actual selected area
+      const selectedAcres = calculateAreaAcres(polygonCoords);
+      setSelectedAreaAcres(selectedAcres);
+
       const BACKEND_URL =
         import.meta.env.VITE_API_URL ||
         "https://recharge-basin-app.onrender.com";
@@ -40,6 +72,8 @@ export default function App() {
       const data = await response.json();
       if (data.ok && data.allsoils) {
         setSoilData(data.allsoils);
+        // Auto-populate the landAcres input with the selected area
+        set("landAcres", Math.round(selectedAcres * 100) / 100);
       } else {
         setSoilData(null);
         setError(data.error || "No soil data found. Try a larger area.");
@@ -143,6 +177,20 @@ export default function App() {
           {soilData && (
             <>
               <h3 className="text-lg font-semibold mt-4 mb-2">Soil Data (USDA SoilDB)</h3>
+
+              {selectedAreaAcres && (
+                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-900 mb-2">
+                    <strong>Your selected area:</strong> {fmtNumber(selectedAreaAcres, 2)} acres
+                  </p>
+                  <p className="text-sm text-blue-800">
+                    <strong>Note:</strong> The USDA SoilDB returns data for entire soil mapping units that overlap your selection.
+                    The acres shown in the table below represent the full extent of each soil type in the mapping database,
+                    not just your selected area. Use your selected area ({fmtNumber(selectedAreaAcres, 2)} acres) for calculations.
+                  </p>
+                </div>
+              )}
+
               <table className="min-w-full border text-sm mb-6">
                 <thead className="bg-gray-100 border-b">
                   <tr>
