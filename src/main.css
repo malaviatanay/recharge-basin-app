@@ -1,0 +1,26 @@
+@import "leaflet/dist/leaflet.css";
+@import "tailwindcss";
+@layer base, components, utilities;
+
+@media print {
+  main section:first-of-type {
+    display: none !important;
+  }
+
+  footer {
+    display: none !important;
+  }
+
+  main {
+    display: block !important;
+  }
+
+  body, html {
+    background: white !important;
+    color: black !important;
+  }
+
+  body {
+    font-size: 14px !important;
+  }
+}

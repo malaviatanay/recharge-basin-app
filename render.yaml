@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: recharge-basin-app
+    runtime: node
+    rootDir: .
+    buildCommand: npm install && npm run build
+    startCommand: node src/server/server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: PORT
+        sync: false
