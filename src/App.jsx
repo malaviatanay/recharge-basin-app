@@ -98,27 +98,47 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900 p-6">
-      <section className="max-w-[1000px] mx-auto mb-10">
+      <section className="max-w-[1200px] mx-auto mb-10">
         <h2 className="text-4xl font-bold text-center mb-6">
           Groundwater Depletion in California's Central Valley
         </h2>
-        <p className="text-gray-700 text-xl leading-relaxed mb-8 text-center">
+        <p className="text-gray-700 text-xl leading-relaxed mb-6 text-center max-w-5xl mx-auto">
           California's Central Valley, one of the most productive agricultural
           regions in the world, faces a critical challenge — decades of
           groundwater pumping, coupled with drought and reduced surface-water
           supplies, have caused aquifer levels to drop dramatically.
         </p>
+        <p className="text-gray-700 text-lg leading-relaxed mb-8 text-center max-w-4xl mx-auto">
+          As groundwater becomes scarcer, farmers face higher pumping costs, reduced crop yields,
+          and land subsidence (sinking). Without action, our agricultural communities and food
+          production systems are at risk. Replenishing groundwater is essential for long-term
+          sustainability and the future of farming in the Central Valley.
+        </p>
 
-        <div className="max-w-3xl mx-auto bg-white/90 backdrop-blur-sm rounded-2xl shadow-md border border-gray-200 p-8">
+        <div className="max-w-4xl mx-auto bg-white/90 backdrop-blur-sm rounded-2xl shadow-md border border-gray-200 p-8">
           <h3 className="text-3xl font-semibold text-blue-800 mb-4">
-            Our Collaborative Solution
+            Our Collaborative Solution: Groundwater Recharge Basins
           </h3>
-          <p className="text-gray-700 text-lg leading-relaxed">
+          <p className="text-gray-700 text-lg leading-relaxed mb-4">
             Working with the <strong>California Water Institute</strong>, this
             project encourages farmers to repurpose portions of their land into
-            <strong> recharge basins </strong> — shallow areas designed to
-            capture surface water and allow it to percolate back into
-            underground aquifers.
+            <strong> recharge basins</strong> — shallow flooded areas designed to
+            capture available surface water (from winter storms, flood flows, or allocated water)
+            and allow it to slowly percolate back into underground aquifers.
+          </p>
+          <p className="text-gray-700 text-lg leading-relaxed mb-4">
+            <strong>How it works:</strong> During wet months when water is abundant,
+            your recharge basin acts like a large, shallow pond. Water soaks through
+            the soil naturally, refilling the underground aquifer. During dry months,
+            you can pump this stored groundwater back up for irrigation — creating a
+            natural water bank on your own property.
+          </p>
+          <p className="text-gray-700 text-lg leading-relaxed">
+            <strong>Benefits for farmers:</strong> Lower long-term pumping costs, more
+            reliable water supply during droughts, potential water credits or payments,
+            and contribution to regional groundwater sustainability. This tool helps you
+            estimate costs, water volumes, and financial returns for converting part of
+            your land into a recharge basin.
           </p>
         </div>
       </section>
@@ -222,6 +242,85 @@ export default function App() {
               <p>Net Annual Cash Flow: {fmtCurrency(results.netAnnual)}</p>
             </>
           )}
+        </section>
+
+        <section className="rounded-xl bg-white p-6 border border-gray-200 shadow-sm">
+          <h2 className="text-xl font-semibold mb-4">Glossary of Terms & Abbreviations</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Understanding the technical terms used in groundwater recharge calculations:
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border-l-4 border-blue-500 pl-4">
+              <h4 className="font-semibold text-gray-900">AF (Acre-Feet)</h4>
+              <p className="text-sm text-gray-700">
+                Volume of water that covers one acre to a depth of one foot.
+                Equals 325,851 gallons — enough to supply 2-3 households for a year.
+              </p>
+            </div>
+            <div className="border-l-4 border-blue-500 pl-4">
+              <h4 className="font-semibold text-gray-900">CAPEX (Capital Expenditure)</h4>
+              <p className="text-sm text-gray-700">
+                Upfront construction costs including excavation, grading, inlet/outlet structures,
+                and permits. One-time investment to build the recharge basin.
+              </p>
+            </div>
+            <div className="border-l-4 border-blue-500 pl-4">
+              <h4 className="font-semibold text-gray-900">O&M (Operations & Maintenance)</h4>
+              <p className="text-sm text-gray-700">
+                Ongoing yearly costs for basin upkeep: vegetation management, sediment removal,
+                inspections, and minor repairs.
+              </p>
+            </div>
+            <div className="border-l-4 border-blue-500 pl-4">
+              <h4 className="font-semibold text-gray-900">CFS (Cubic Feet per Second)</h4>
+              <p className="text-sm text-gray-700">
+                Water flow rate. One CFS equals about 450 gallons per minute.
+                Used to size pipes and pumps for the basin.
+              </p>
+            </div>
+            <div className="border-l-4 border-blue-500 pl-4">
+              <h4 className="font-semibold text-gray-900">Infiltration Rate (in/day)</h4>
+              <p className="text-sm text-gray-700">
+                How fast water soaks through the soil measured in inches per day.
+                Sandy soils infiltrate faster (2-10 in/day) than clay soils (0.1-1 in/day).
+              </p>
+            </div>
+            <div className="border-l-4 border-blue-500 pl-4">
+              <h4 className="font-semibold text-gray-900">kWh (Kilowatt-Hour)</h4>
+              <p className="text-sm text-gray-700">
+                Unit of electrical energy. Pumping groundwater requires energy;
+                deeper wells need more kWh per acre-foot pumped.
+              </p>
+            </div>
+            <div className="border-l-4 border-blue-500 pl-4">
+              <h4 className="font-semibold text-gray-900">ROI (Return on Investment)</h4>
+              <p className="text-sm text-gray-700">
+                Financial gain compared to initial investment. Calculated from water value,
+                reduced pumping costs, and potential credits minus construction and O&M costs.
+              </p>
+            </div>
+            <div className="border-l-4 border-blue-500 pl-4">
+              <h4 className="font-semibold text-gray-900">USDA SoilDB</h4>
+              <p className="text-sm text-gray-700">
+                United States Department of Agriculture Soil Database.
+                Official source for soil types and properties across the country.
+              </p>
+            </div>
+            <div className="border-l-4 border-blue-500 pl-4">
+              <h4 className="font-semibold text-gray-900">Recharge Season (days)</h4>
+              <p className="text-sm text-gray-700">
+                Number of days per year water is available to flood the basin,
+                typically during winter/spring months when surface water is abundant.
+              </p>
+            </div>
+            <div className="border-l-4 border-blue-500 pl-4">
+              <h4 className="font-semibold text-gray-900">Simple Payback (years)</h4>
+              <p className="text-sm text-gray-700">
+                Time to recover initial investment through annual net benefits.
+                Shorter payback means faster return on your investment.
+              </p>
+            </div>
+          </div>
         </section>
       </main>
     </div>
